@@ -34,9 +34,15 @@ export default class MainScene extends Phaser.Scene {
             fill: '#ffffff'
         });
         
-        this.add.text(16, 40, 'Use arrow keys to move', {
+        this.add.text(16, 40, 'Up/Down: Speed | Left/Right: Orbit Radius', {
             fontSize: '14px',
             fill: '#cccccc'
+        });
+        
+        // Create debug text for momentum display
+        this.debugText = this.add.text(16, 70, '', {
+            fontSize: '12px',
+            fill: '#ffff00'
         });
     }
 
@@ -119,18 +125,26 @@ export default class MainScene extends Phaser.Scene {
         this.player = this.add.circle(
             this.centerX,
             this.centerY - this.trackCenterRadius,
-            15,
+            8,
             0x00ff00
         );
         
         // Add physics to player
         this.physics.add.existing(this.player);
-        this.player.body.setCircle(15);
+        this.player.body.setCircle(7);
+        
+        // Set orbital properties
+        this.orbitRadius = this.trackCenterRadius;
+        this.orbitSpeed = 0.1; // Start with some momentum
+        this.maxOrbitSpeed = 3;
+        this.minOrbitSpeed = 0.1; // Minimum momentum
+        this.orbitSpeedChange = 0.001; // Very slow acceleration
+        this.radiusChange = 5;
         
         // Set player properties
-        this.playerSpeed = 200;
-        this.player.body.setBounce(1, 1);
+        this.player.body.setBounce(0.8, 0.8);
         this.player.body.setCollideWorldBounds(false);
+        this.player.body.setDrag(0.98, 0.98);
         
         // Add collision with all wall segments
         this.collisionWalls.forEach(wall => {
@@ -148,34 +162,74 @@ export default class MainScene extends Phaser.Scene {
             yoyo: true
         });
         
-        // Add a small bounce effect
-        player.body.setBounce(0.8, 0.8);
+        // Don't change bounce here - let the physics handle the deflection naturally
     }
 
     update() {
         if (!this.player) return;
         
-        // Handle player movement
+        // Handle orbital controls
         const cursors = this.cursors;
-        const player = this.player.body;
         
-        // Reset velocity
-        player.setVelocity(0);
-        
-        // Handle input
-        if (cursors.left.isDown) {
-            player.setVelocityX(-this.playerSpeed);
-        } else if (cursors.right.isDown) {
-            player.setVelocityX(this.playerSpeed);
-        }
-        
+        // Up/Down arrows control orbit speed
         if (cursors.up.isDown) {
-            player.setVelocityY(-this.playerSpeed);
+            this.orbitSpeed = Math.min(this.orbitSpeed + this.orbitSpeedChange, this.maxOrbitSpeed);
         } else if (cursors.down.isDown) {
-            player.setVelocityY(this.playerSpeed);
+            this.orbitSpeed = Math.max(this.orbitSpeed - this.orbitSpeedChange, -this.maxOrbitSpeed);
+        } else {
+            // Gradually slow down when no keys are pressed, but maintain minimum momentum
+            this.orbitSpeed *= 0.95;
+            if (Math.abs(this.orbitSpeed) < this.minOrbitSpeed) {
+                this.orbitSpeed = Math.sign(this.orbitSpeed) * this.minOrbitSpeed;
+            }
         }
+        
+        // Left/Right arrows control orbit radius
+        if (cursors.left.isDown) {
+            this.orbitRadius = Math.max(this.orbitRadius - this.radiusChange, this.trackCenterRadius - this.trackWidth / 2 + 20);
+        } else if (cursors.right.isDown) {
+            this.orbitRadius = Math.min(this.orbitRadius + this.radiusChange, this.trackCenterRadius + this.trackWidth / 2 - 20);
+        }
+        
+        // Calculate orbital movement
+        const currentAngle = Math.atan2(this.player.y - this.centerY, this.player.x - this.centerX);
+        
+        // Update angle based on orbit speed (this controls how fast it orbits)
+        const newAngle = currentAngle + this.orbitSpeed;
+        
+        // Calculate target position at the desired orbit radius
+        const targetX = this.centerX + Math.cos(newAngle) * this.orbitRadius;
+        const targetY = this.centerY + Math.sin(newAngle) * this.orbitRadius;
+        
+        // Move player towards target position with consistent velocity
+        const player = this.player.body;
+        const dx = targetX - this.player.x;
+        const dy = targetY - this.player.y;
+        
+        // Use a constant velocity multiplier for consistent movement
+        const velocityMultiplier = 8;
+        player.setVelocity(dx * velocityMultiplier, dy * velocityMultiplier);
         
         // Let physics handle the wall collisions naturally
         // The collision detection in createPlayerParticle() will handle bouncing
+        
+        // Update debug display
+        this.updateDebugDisplay();
+    }
+    
+    updateDebugDisplay() {
+        if (!this.debugText || !this.player) return;
+        
+        const player = this.player.body;
+        const velocity = Math.sqrt(player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y);
+        const distanceFromCenter = Phaser.Math.Distance.Between(this.centerX, this.centerY, this.player.x, this.player.y);
+        
+        this.debugText.setText([
+            `Orbit Speed: ${this.orbitSpeed.toFixed(2)}`,
+            `Orbit Radius: ${this.orbitRadius.toFixed(1)}`,
+            `Velocity: ${velocity.toFixed(1)}`,
+            `Distance from Center: ${distanceFromCenter.toFixed(1)}`,
+            `Position: (${this.player.x.toFixed(0)}, ${this.player.y.toFixed(0)})`
+        ]);
     }
 } 
