@@ -69,7 +69,9 @@ export default class MainScene extends Phaser.Scene {
             `Distance from Center: ${debugInfo.distanceFromCenter}`,
             `Position: ${debugInfo.position}`,
             `Collisions: ${debugInfo.collisionCount}`,
-            `Time since collision: ${debugInfo.timeSinceCollision}s`
+            `Time since collision: ${debugInfo.timeSinceCollision}s`,
+            `Wall Radius: ${debugInfo.wallRadius}`,
+            `Inside Wall: ${debugInfo.isInsideWall}`
         ]);
     }
 } 

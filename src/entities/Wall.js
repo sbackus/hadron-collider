@@ -30,8 +30,12 @@ export default class Wall {
             wallRadius,
             0x000000
         );
-        this.collisionWall.setVisible(false);
+        this.collisionWall.setVisible(true); // Temporarily visible for debugging
+        this.collisionWall.setAlpha(0.3); // Semi-transparent to see the boundary
         this.scene.physics.add.existing(this.collisionWall, true);
+        
+        // Set the collision body to be a circle
+        this.collisionWall.body.setCircle(wallRadius);
     }
     
     getCollisionWalls() {

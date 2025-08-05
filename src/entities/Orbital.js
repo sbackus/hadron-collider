@@ -111,7 +111,9 @@ export default class Orbital {
             distanceFromCenter: distanceFromCenter.toFixed(1),
             position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`,
             collisionCount: this.collisionCount || 0,
-            timeSinceCollision: timeSinceCollision
+            timeSinceCollision: timeSinceCollision,
+            wallRadius: this.scene.walls.collisionWall.radius.toFixed(1),
+            isInsideWall: distanceFromCenter < this.scene.walls.collisionWall.radius ? 'YES' : 'NO'
         };
     }
 } 
