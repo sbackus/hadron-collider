@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Orbital from '../entities/Orbital.js';
-import Wall from '../entities/Wall.js';
+import Roller from '../entities/Roller.js';
+import InnerWall from '../entities/InnerWall.js';
 
 export default class MainScene extends Phaser.Scene {
     constructor() {
@@ -17,13 +18,20 @@ export default class MainScene extends Phaser.Scene {
         this.trackWidth = 80; // Width of the racing track
         
         // Create walls
-        this.walls = new Wall(this, this.centerX, this.centerY, this.trackCenterRadius, this.trackWidth);
+        this.walls = new InnerWall(this, this.centerX, this.centerY, this.trackCenterRadius, this.trackWidth);
         
-        // Create player
+        // Create players
         this.player = new Orbital(this, this.centerX, this.centerY - this.trackCenterRadius);
+        this.player2 = new Roller(this, this.centerX + 50, this.centerY - this.trackCenterRadius);
         
         // Add controls
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasdKeys = {
+            W: this.input.keyboard.addKey('W'),
+            A: this.input.keyboard.addKey('A'),
+            S: this.input.keyboard.addKey('S'),
+            D: this.input.keyboard.addKey('D')
+        };
         
         // Add some UI text
         this.add.text(16, 16, 'Hadron - Loop Racing', {
@@ -31,7 +39,7 @@ export default class MainScene extends Phaser.Scene {
             fill: '#ffffff'
         });
         
-        this.add.text(16, 40, 'Up/Down: Speed | Left/Right: Orbit Radius', {
+        this.add.text(16, 40, 'Arrow Keys: Orbital | WASD: Roller', {
             fontSize: '14px',
             fill: '#cccccc'
         });
@@ -48,30 +56,38 @@ export default class MainScene extends Phaser.Scene {
 
 
     update() {
-        if (!this.player) return;
+        if (!this.player || !this.player2) return;
         
-        // Update player with current controls
+        // Update players with current controls
         this.player.update(this.cursors);
+        this.player2.update(this.wasdKeys);
         
         // Update debug display
         this.updateDebugDisplay();
     }
     
     updateDebugDisplay() {
-        if (!this.debugText || !this.player) return;
+        if (!this.debugText || !this.player || !this.player2) return;
         
-        const debugInfo = this.player.getDebugInfo();
+        const orbitalInfo = this.player.getDebugInfo();
+        const rollerInfo = this.player2.getDebugInfo();
         
         this.debugText.setText([
-            `Orbit Speed: ${debugInfo.orbitSpeed}`,
-            `Orbit Radius: ${debugInfo.orbitRadius}`,
-            `Velocity: ${debugInfo.velocity}`,
-            `Distance from Center: ${debugInfo.distanceFromCenter}`,
-            `Position: ${debugInfo.position}`,
-            `Collisions: ${debugInfo.collisionCount}`,
-            `Time since collision: ${debugInfo.timeSinceCollision}s`,
-            `Wall Radius: ${debugInfo.wallRadius}`,
-            `Inside Wall: ${debugInfo.isInsideWall}`
+            `=== ORBITAL (Green) ===`,
+            `Orbit Speed: ${orbitalInfo.orbitSpeed}`,
+            `Orbit Radius: ${orbitalInfo.orbitRadius}`,
+            `Velocity: ${orbitalInfo.velocity}`,
+            `Collisions: ${orbitalInfo.collisionCount}`,
+            `Time since collision: ${orbitalInfo.timeSinceCollision}s`,
+            `Inside Wall: ${orbitalInfo.isInsideWall}`,
+            ``,
+            `=== ROLLER (Orange) ===`,
+            `Velocity: ${rollerInfo.velocity}`,
+            `Position: ${rollerInfo.position}`,
+            `Collisions: ${rollerInfo.collisionCount}`,
+            `Time since collision: ${rollerInfo.timeSinceCollision}s`,
+            ``,
+            `Wall Radius: ${orbitalInfo.wallRadius}`
         ]);
     }
 } 

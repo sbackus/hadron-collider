@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-export default class Wall {
+export default class InnerWall {
     constructor(scene, centerX, centerY, trackCenterRadius, trackWidth) {
         this.scene = scene;
         this.centerX = centerX;
