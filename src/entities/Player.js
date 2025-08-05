@@ -27,7 +27,8 @@ export default class Player {
         this.sprite.body.setDrag(0.99, 0.99); // Less drag for smoother movement
         
         // Add collision with all wall segments
-        scene.collisionWalls.forEach(wall => {
+        const collisionWalls = scene.walls.getCollisionWalls();
+        collisionWalls.forEach(wall => {
             scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
         });
     }
