@@ -15,54 +15,26 @@ export default class Wall {
     }
     
     createCircularTrack() {
-        // Calculate inner wall radius
-        const innerWallRadius = this.trackCenterRadius - (this.trackWidth / 2);
+        // Calculate wall radius
+        const wallRadius = this.trackCenterRadius - (this.trackWidth / 2);
         
         // Create the wall as a circle
         this.track = this.scene.add.graphics();
         this.track.lineStyle(4, this.WALL_COLOR, 1);
-        this.track.strokeCircle(this.centerX, this.centerY, innerWallRadius);
+        this.track.strokeCircle(this.centerX, this.centerY, wallRadius);
         
-        // Create invisible collision walls
-        this.createCollisionWalls(innerWallRadius);
-    }
-    
-    createCollisionWalls(innerRadius) {
-        // Create multiple small collision segments to approximate the circular inner wall
-        const segments = 32; // Number of collision segments
-        this.collisionWalls = [];
-        
-        for (let i = 0; i < segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            const nextAngle = ((i + 1) / segments) * Math.PI * 2;
-            
-            // Inner wall segment
-            const innerStartX = this.centerX + Math.cos(angle) * innerRadius;
-            const innerStartY = this.centerY + Math.sin(angle) * innerRadius;
-            const innerEndX = this.centerX + Math.cos(nextAngle) * innerRadius;
-            const innerEndY = this.centerY + Math.sin(nextAngle) * innerRadius;
-            
-            // Create a small rectangle for collision instead of a line
-            const segmentLength = Math.sqrt(
-                Math.pow(innerEndX - innerStartX, 2) + Math.pow(innerEndY - innerStartY, 2)
-            );
-            const segmentAngle = Math.atan2(innerEndY - innerStartY, innerEndX - innerStartX);
-            
-            const innerSegment = this.scene.add.rectangle(
-                (innerStartX + innerEndX) / 2,
-                (innerStartY + innerEndY) / 2,
-                segmentLength,
-                8,
-                0x000000
-            );
-            innerSegment.setVisible(false);
-            innerSegment.setRotation(segmentAngle);
-            this.scene.physics.add.existing(innerSegment, true);
-            this.collisionWalls.push(innerSegment);
-        }
+        // Create a single circular collision wall
+        this.collisionWall = this.scene.add.circle(
+            this.centerX,
+            this.centerY,
+            wallRadius,
+            0x000000
+        );
+        this.collisionWall.setVisible(false);
+        this.scene.physics.add.existing(this.collisionWall, true);
     }
     
     getCollisionWalls() {
-        return this.collisionWalls;
+        return [this.collisionWall];
     }
 } 
