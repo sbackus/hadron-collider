@@ -67,7 +67,9 @@ export default class MainScene extends Phaser.Scene {
             `Orbit Radius: ${debugInfo.orbitRadius}`,
             `Velocity: ${debugInfo.velocity}`,
             `Distance from Center: ${debugInfo.distanceFromCenter}`,
-            `Position: ${debugInfo.position}`
+            `Position: ${debugInfo.position}`,
+            `Collisions: ${debugInfo.collisionCount}`,
+            `Time since collision: ${debugInfo.timeSinceCollision}s`
         ]);
     }
 } 

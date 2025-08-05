@@ -43,6 +43,10 @@ export default class Orbital {
             yoyo: true
         });
         
+        // Track collision info for debugging
+        this.lastCollisionTime = this.scene.time.now;
+        this.collisionCount = (this.collisionCount || 0) + 1;
+        
         // Let the physics engine handle the natural bounce
     }
     
@@ -96,12 +100,18 @@ export default class Orbital {
         const velocity = Math.sqrt(player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y);
         const distanceFromCenter = Phaser.Math.Distance.Between(this.centerX, this.centerY, this.sprite.x, this.sprite.y);
         
+        // Calculate time since last collision
+        const timeSinceCollision = this.lastCollisionTime ? 
+            ((this.scene.time.now - this.lastCollisionTime) / 1000).toFixed(1) : 'N/A';
+        
         return {
             orbitSpeed: this.orbitSpeed.toFixed(2),
             orbitRadius: this.orbitRadius.toFixed(1),
             velocity: velocity.toFixed(1),
             distanceFromCenter: distanceFromCenter.toFixed(1),
-            position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`
+            position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`,
+            collisionCount: this.collisionCount || 0,
+            timeSinceCollision: timeSinceCollision
         };
     }
 } 
