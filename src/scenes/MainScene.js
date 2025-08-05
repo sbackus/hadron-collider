@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import Player from '../entities/Player.js';
+import Orbital from '../entities/Orbital.js';
 import Wall from '../entities/Wall.js';
 
 export default class MainScene extends Phaser.Scene {
@@ -20,7 +20,7 @@ export default class MainScene extends Phaser.Scene {
         this.walls = new Wall(this, this.centerX, this.centerY, this.trackCenterRadius, this.trackWidth);
         
         // Create player
-        this.player = new Player(this, this.centerX, this.centerY - this.trackCenterRadius);
+        this.player = new Orbital(this, this.centerX, this.centerY - this.trackCenterRadius);
         
         // Add controls
         this.cursors = this.input.keyboard.createCursorKeys();
