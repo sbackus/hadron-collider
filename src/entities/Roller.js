@@ -20,9 +20,20 @@ export default class Roller {
         this.moveSpeed = 200;
         
         // Add collision with all wall segments
-        const collisionWalls = scene.walls.getCollisionWalls();
-        collisionWalls.forEach(wall => {
+        const innerWalls = scene.innerWalls.getCollisionWalls();
+        const outerWalls = scene.outerWalls.getCollisionWalls();
+        
+        console.log(`Roller: Adding ${innerWalls.length} inner wall collisions`);
+        console.log(`Roller: Adding ${outerWalls.length} outer wall collisions`);
+        
+        innerWalls.forEach((wall, index) => {
             scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
+            console.log(`Roller: Added inner wall collision ${index}`);
+        });
+        
+        outerWalls.forEach((wall, index) => {
+            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
+            console.log(`Roller: Added outer wall collision ${index}`);
         });
         
         // Track collision info for debugging
@@ -43,6 +54,15 @@ export default class Roller {
         // Track collision info for debugging
         this.lastCollisionTime = this.scene.time.now;
         this.collisionCount = (this.collisionCount || 0) + 1;
+        
+        // Debug: log collision info
+        console.log('Roller collision detected:', {
+            playerX: player.x,
+            playerY: player.y,
+            wallX: wall.x,
+            wallY: wall.y,
+            collisionCount: this.collisionCount
+        });
         
         // Let the physics engine handle the natural bounce
     }

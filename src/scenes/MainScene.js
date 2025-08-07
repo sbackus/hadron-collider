@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Orbital from '../entities/Orbital.js';
 import Roller from '../entities/Roller.js';
 import InnerWall from '../entities/InnerWall.js';
+import OuterWall from '../entities/OuterWall.js';
 
 export default class MainScene extends Phaser.Scene {
     constructor() {
@@ -14,11 +15,12 @@ export default class MainScene extends Phaser.Scene {
         this.centerY = this.cameras.main.height / 2;
         
         // Track dimensions
-        this.trackCenterRadius = 250; // Distance from center to middle of track
+        this.trackCenterRadius = 150; // Distance from center to middle of track
         this.trackWidth = 80; // Width of the racing track
         
         // Create walls
-        this.walls = new InnerWall(this, this.centerX, this.centerY, this.trackCenterRadius, this.trackWidth);
+        this.innerWalls = new InnerWall(this, this.centerX, this.centerY, this.trackCenterRadius, this.trackWidth);
+        this.outerWalls = new OuterWall(this, this.centerX, this.centerY, 600);
         
         // Create players
         this.player = new Orbital(this, this.centerX, this.centerY - this.trackCenterRadius);

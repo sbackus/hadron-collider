@@ -24,11 +24,17 @@ export default class Orbital {
         // Set player properties
         this.sprite.body.setBounce(0.95, 0.95); // More bouncy like a marble
         this.sprite.body.setCollideWorldBounds(false);
-        this.sprite.body.setDrag(0.99, 0.99); // Less drag for smoother movement
+        this.sprite.body.setDrag(0.01, 0.01); // Less drag for smoother movement
         
         // Add collision with all wall segments
-        const collisionWalls = scene.walls.getCollisionWalls();
-        collisionWalls.forEach(wall => {
+        const innerWalls = scene.innerWalls.getCollisionWalls();
+        const outerWalls = scene.outerWalls.getCollisionWalls();
+        
+        innerWalls.forEach(wall => {
+            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
+        });
+        
+        outerWalls.forEach(wall => {
             scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
         });
     }
@@ -112,8 +118,8 @@ export default class Orbital {
             position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`,
             collisionCount: this.collisionCount || 0,
             timeSinceCollision: timeSinceCollision,
-            wallRadius: this.scene.walls.collisionWall.radius.toFixed(1),
-            isInsideWall: distanceFromCenter < this.scene.walls.collisionWall.radius ? 'YES' : 'NO'
+            wallRadius: this.scene.innerWalls.collisionWall.radius.toFixed(1),
+            isInsideWall: distanceFromCenter < this.scene.innerWalls.collisionWall.radius ? 'YES' : 'NO'
         };
     }
 } 
