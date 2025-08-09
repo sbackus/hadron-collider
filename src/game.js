@@ -8,10 +8,11 @@ const config = {
     parent: 'game-container',
     backgroundColor: '#000000',
     physics: {
-        default: 'arcade',
-        arcade: {
+        default: 'matter',
+        matter: {
             gravity: { x: 0, y: 0 },
-            debug: false
+            debug: false,
+            enableSleeping: false
         }
     },
     scene: [MainScene]

@@ -48,18 +48,34 @@ export default class OuterWall {
         ];
         
         walls.forEach((wall, index) => {
-            const wallSegment = this.scene.add.rectangle(
+            // Create Phaser sprite for visual representation
+            const wallSprite = this.scene.add.rectangle(
                 wall.x,
                 wall.y,
                 wall.width,
                 wall.height,
                 0x0000ff
             );
-            wallSegment.setVisible(true); // Temporarily visible for debugging
-            wallSegment.setAlpha(0.3); // Semi-transparent
-            this.scene.physics.add.existing(wallSegment, true);
+            wallSprite.setVisible(true); // Temporarily visible for debugging
+            wallSprite.setAlpha(0.3); // Semi-transparent
             
-            this.collisionWalls.push(wallSegment);
+            // Create Matter.js physics body
+            const wallBody = this.scene.matter.add.rectangle(
+                wall.x,
+                wall.y,
+                wall.width,
+                wall.height,
+                { 
+                    isStatic: true,
+                    render: { visible: false } // Hide Matter.js rendering, use Phaser sprite
+                }
+            );
+            
+            // Store both sprite and body
+            this.collisionWalls.push({
+                sprite: wallSprite,
+                body: wallBody
+            });
             
             // Debug: log wall segment info
             console.log(`Outer wall segment ${index}:`, {

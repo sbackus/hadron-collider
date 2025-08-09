@@ -6,12 +6,16 @@ export default class Orbital {
         this.centerX = scene.centerX;
         this.centerY = scene.centerY;
         
-        // Create player particle
+        // Create Phaser sprite for visual representation
         this.sprite = scene.add.circle(x, y, 8, 0x00ff00);
         
-        // Add physics to player
-        scene.physics.add.existing(this.sprite);
-        this.sprite.body.setCircle(7);
+        // Create Matter.js physics body
+        this.body = scene.matter.add.circle(x, y, 8, {
+            restitution: 0.95, // More bouncy like a marble
+            friction: 0.01, // Less drag for smoother movement
+            frictionAir: 0.01, // Air resistance
+            render: { visible: false } // Hide Matter.js rendering, use Phaser sprite
+        });
         
         // Set orbital properties
         this.orbitRadius = scene.trackCenterRadius;
@@ -21,28 +25,38 @@ export default class Orbital {
         this.orbitSpeedChange = 0.001; // Very slow acceleration
         this.radiusChange = 5;
         
-        // Set player properties
-        this.sprite.body.setBounce(0.95, 0.95); // More bouncy like a marble
-        this.sprite.body.setCollideWorldBounds(false);
-        this.sprite.body.setDrag(0.01, 0.01); // Less drag for smoother movement
+        // Set up collision detection with Matter.js events
+        this.setupCollisions();
+    }
+    
+    setupCollisions() {
+        // Get wall bodies for collision detection
+        const innerWalls = this.scene.innerWalls.getCollisionWalls();
+        const outerWalls = this.scene.outerWalls.getCollisionWalls();
         
-        // Add collision with all wall segments
-        const innerWalls = scene.innerWalls.getCollisionWalls();
-        const outerWalls = scene.outerWalls.getCollisionWalls();
-        
-        innerWalls.forEach(wall => {
-            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
+        // Collect all wall bodies
+        const allWallBodies = [...innerWalls];
+        this.scene.outerWalls.getCollisionWalls().forEach(wallData => {
+            allWallBodies.push(wallData.body);
         });
         
-        outerWalls.forEach(wall => {
-            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
+        console.log(`Orbital: Setting up collisions with ${allWallBodies.length} walls`);
+        
+        // Add collision event listener
+        this.scene.matter.world.on('collisionstart', (event) => {
+            event.pairs.forEach((pair) => {
+                if ((pair.bodyA === this.body && allWallBodies.includes(pair.bodyB)) ||
+                    (pair.bodyB === this.body && allWallBodies.includes(pair.bodyA))) {
+                    this.handleWallCollision();
+                }
+            });
         });
     }
     
-    handleWallCollision(player, wall) {
+    handleWallCollision() {
         // Add some visual feedback when hitting walls
         this.scene.tweens.add({
-            targets: player,
+            targets: this.sprite,
             scaleX: 1.2,
             scaleY: 1.2,
             duration: 100,
@@ -57,7 +71,12 @@ export default class Orbital {
     }
     
     update(cursors) {
-        if (!this.sprite) return;
+        if (!this.body) return;
+        
+        // Sync sprite position with physics body
+        this.sprite.x = this.body.position.x;
+        this.sprite.y = this.body.position.y;
+        this.sprite.rotation = this.body.angle; // Show rotation!
         
         // Up/Down arrows control orbit speed
         if (cursors.up.isDown) {
@@ -80,7 +99,7 @@ export default class Orbital {
         }
         
         // Calculate orbital movement
-        const currentAngle = Math.atan2(this.sprite.y - this.centerY, this.sprite.x - this.centerX);
+        const currentAngle = Math.atan2(this.body.position.y - this.centerY, this.body.position.x - this.centerX);
         
         // Update angle based on orbit speed (this controls how fast it orbits)
         const newAngle = currentAngle + this.orbitSpeed;
@@ -90,36 +109,47 @@ export default class Orbital {
         const targetY = this.centerY + Math.sin(newAngle) * this.orbitRadius;
         
         // Move player towards target position with consistent velocity
-        const player = this.sprite.body;
-        const dx = targetX - this.sprite.x;
-        const dy = targetY - this.sprite.y;
+        const dx = targetX - this.body.position.x;
+        const dy = targetY - this.body.position.y;
         
-        // Use a constant velocity multiplier for consistent movement
-        const velocityMultiplier = 8;
-        player.setVelocity(dx * velocityMultiplier, dy * velocityMultiplier);
+        // Use velocity for orbital movement
+        const velocityMultiplier = 0.08; // Adjusted for Matter.js scale
+        this.scene.matter.body.setVelocity(this.body, {
+            x: dx * velocityMultiplier,
+            y: dy * velocityMultiplier
+        });
     }
     
     getDebugInfo() {
-        if (!this.sprite) return {};
+        if (!this.body) return {};
         
-        const player = this.sprite.body;
-        const velocity = Math.sqrt(player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y);
-        const distanceFromCenter = Phaser.Math.Distance.Between(this.centerX, this.centerY, this.sprite.x, this.sprite.y);
+        const velocity = this.body.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        const distanceFromCenter = Phaser.Math.Distance.Between(
+            this.centerX, 
+            this.centerY, 
+            this.body.position.x, 
+            this.body.position.y
+        );
         
         // Calculate time since last collision
         const timeSinceCollision = this.lastCollisionTime ? 
             ((this.scene.time.now - this.lastCollisionTime) / 1000).toFixed(1) : 'N/A';
         
+        // Get wall radius from Matter.js body
+        const wallRadius = this.scene.innerWalls.collisionWall.circleRadius || 80;
+        
         return {
             orbitSpeed: this.orbitSpeed.toFixed(2),
             orbitRadius: this.orbitRadius.toFixed(1),
-            velocity: velocity.toFixed(1),
+            velocity: speed.toFixed(1),
             distanceFromCenter: distanceFromCenter.toFixed(1),
-            position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`,
+            position: `(${this.body.position.x.toFixed(0)}, ${this.body.position.y.toFixed(0)})`,
+            rotation: `${(this.body.angle * (180 / Math.PI)).toFixed(1)}°`, // Show rotation!
             collisionCount: this.collisionCount || 0,
             timeSinceCollision: timeSinceCollision,
-            wallRadius: this.scene.innerWalls.collisionWall.radius.toFixed(1),
-            isInsideWall: distanceFromCenter < this.scene.innerWalls.collisionWall.radius ? 'YES' : 'NO'
+            wallRadius: wallRadius.toFixed(1),
+            isInsideWall: distanceFromCenter < wallRadius ? 'YES' : 'NO'
         };
     }
 } 

@@ -41,7 +41,7 @@ export default class MainScene extends Phaser.Scene {
             fill: '#ffffff'
         });
         
-        this.add.text(16, 40, 'Arrow Keys: Orbital | WASD: Roller', {
+        this.add.text(16, 40, 'Arrow Keys: Orbital | WASD: Roller | Q/E: Spin Roller', {
             fontSize: '14px',
             fill: '#cccccc'
         });
@@ -79,6 +79,7 @@ export default class MainScene extends Phaser.Scene {
             `Orbit Speed: ${orbitalInfo.orbitSpeed}`,
             `Orbit Radius: ${orbitalInfo.orbitRadius}`,
             `Velocity: ${orbitalInfo.velocity}`,
+            `Rotation: ${orbitalInfo.rotation}`, // NEW: Show rotation!
             `Collisions: ${orbitalInfo.collisionCount}`,
             `Time since collision: ${orbitalInfo.timeSinceCollision}s`,
             `Inside Wall: ${orbitalInfo.isInsideWall}`,
@@ -86,6 +87,8 @@ export default class MainScene extends Phaser.Scene {
             `=== ROLLER (Orange) ===`,
             `Velocity: ${rollerInfo.velocity}`,
             `Position: ${rollerInfo.position}`,
+            `Rotation: ${rollerInfo.rotation}`, // NEW: Show rotation!
+            `Angular Velocity: ${rollerInfo.angularVelocity}`, // NEW: Show spin rate!
             `Collisions: ${rollerInfo.collisionCount}`,
             `Time since collision: ${rollerInfo.timeSinceCollision}s`,
             ``,

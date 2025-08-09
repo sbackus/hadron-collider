@@ -23,19 +23,26 @@ export default class InnerWall {
         this.track.lineStyle(4, this.WALL_COLOR, 1);
         this.track.strokeCircle(this.centerX, this.centerY, wallRadius);
         
-        // Create a single circular collision wall
-        this.collisionWall = this.scene.add.circle(
+        // Create Phaser sprite for visual representation
+        this.wallSprite = this.scene.add.circle(
             this.centerX,
             this.centerY,
             wallRadius,
             0x000000
         );
-        this.collisionWall.setVisible(true); // Temporarily visible for debugging
-        this.collisionWall.setAlpha(0.3); // Semi-transparent to see the boundary
-        this.scene.physics.add.existing(this.collisionWall, true);
+        this.wallSprite.setVisible(true); // Temporarily visible for debugging
+        this.wallSprite.setAlpha(0.3); // Semi-transparent to see the boundary
         
-        // Set the collision body to be a circle
-        this.collisionWall.body.setCircle(wallRadius);
+        // Create Matter.js physics body
+        this.collisionWall = this.scene.matter.add.circle(
+            this.centerX,
+            this.centerY,
+            wallRadius,
+            { 
+                isStatic: true,
+                render: { visible: false } // Hide Matter.js rendering, use Phaser sprite
+            }
+        );
     }
     
     getCollisionWalls() {

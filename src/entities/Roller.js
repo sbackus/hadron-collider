@@ -4,52 +4,65 @@ export default class Roller {
     constructor(scene, x, y) {
         this.scene = scene;
         
-        // Create player particle
+        // Create Phaser sprite for visual representation
         this.sprite = scene.add.circle(x, y, 8, 0xff8800); // Orange color to distinguish from Orbital
         
-        // Add physics to player
-        scene.physics.add.existing(this.sprite);
-        this.sprite.body.setCircle(7);
-        
-        // Set player properties
-        this.sprite.body.setBounce(0.95, 0.95); // More bouncy like a marble
-        this.sprite.body.setCollideWorldBounds(false);
-        this.sprite.body.setDrag(0.98, 0.98); // Slight drag for marble-like feel
+        // Create Matter.js physics body
+        this.body = scene.matter.add.circle(x, y, 8, {
+            restitution: 0.95, // More bouncy like a marble
+            friction: 0.02, // Slight drag for marble-like feel
+            frictionAir: 0.02, // Air resistance
+            render: { visible: false } // Hide Matter.js rendering, use Phaser sprite
+        });
         
         // Movement properties
-        this.moveSpeed = 200;
+        this.moveSpeed = 0.0001; // Adjusted for Matter.js force scale
         
-        // Add collision with all wall segments
-        const innerWalls = scene.innerWalls.getCollisionWalls();
-        const outerWalls = scene.outerWalls.getCollisionWalls();
-        
-        console.log(`Roller: Adding ${innerWalls.length} inner wall collisions`);
-        console.log(`Roller: Adding ${outerWalls.length} outer wall collisions`);
-        
-        innerWalls.forEach((wall, index) => {
-            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
-            console.log(`Roller: Added inner wall collision ${index}`);
-        });
-        
-        outerWalls.forEach((wall, index) => {
-            scene.physics.add.collider(this.sprite, wall, this.handleWallCollision, null, this);
-            console.log(`Roller: Added outer wall collision ${index}`);
-        });
+        // Set up collision detection with Matter.js events
+        this.setupCollisions();
         
         // Track collision info for debugging
         this.collisionCount = 0;
         this.lastCollisionTime = null;
     }
     
-    handleWallCollision(player, wall) {
+    setupCollisions() {
+        // Get wall bodies for collision detection
+        const innerWalls = this.scene.innerWalls.getCollisionWalls();
+        const outerWalls = this.scene.outerWalls.getCollisionWalls();
+        
+        // Collect all wall bodies
+        const allWallBodies = [...innerWalls];
+        this.scene.outerWalls.getCollisionWalls().forEach(wallData => {
+            allWallBodies.push(wallData.body);
+        });
+        
+        console.log(`Roller: Setting up collisions with ${allWallBodies.length} walls`);
+        
+        // Add collision event listener
+        this.scene.matter.world.on('collisionstart', (event) => {
+            event.pairs.forEach((pair) => {
+                if ((pair.bodyA === this.body && allWallBodies.includes(pair.bodyB)) ||
+                    (pair.bodyB === this.body && allWallBodies.includes(pair.bodyA))) {
+                    this.handleWallCollision();
+                }
+            });
+        });
+    }
+    
+    handleWallCollision() {
         // Add some visual feedback when hitting walls
         this.scene.tweens.add({
-            targets: player,
+            targets: this.sprite,
             scaleX: 1.2,
             scaleY: 1.2,
             duration: 100,
             yoyo: true
         });
+        
+        // Add spin on collision - this is what was impossible with Phaser physics!
+        const spinForce = (Math.random() - 0.5) * 0.02; // Random spin direction
+        this.scene.matter.body.setAngularVelocity(this.body, this.body.angularVelocity + spinForce);
         
         // Track collision info for debugging
         this.lastCollisionTime = this.scene.time.now;
@@ -57,10 +70,9 @@ export default class Roller {
         
         // Debug: log collision info
         console.log('Roller collision detected:', {
-            playerX: player.x,
-            playerY: player.y,
-            wallX: wall.x,
-            wallY: wall.y,
+            playerX: this.body.position.x,
+            playerY: this.body.position.y,
+            angularVelocity: this.body.angularVelocity,
             collisionCount: this.collisionCount
         });
         
@@ -68,40 +80,75 @@ export default class Roller {
     }
     
     update(cursors) {
-        if (!this.sprite) return;
+        if (!this.body) return;
         
-        // Handle WASD movement with momentum
-        const player = this.sprite.body;
+        // Sync sprite position with physics body
+        this.sprite.x = this.body.position.x;
+        this.sprite.y = this.body.position.y;
+        this.sprite.rotation = this.body.angle; // This is the key advantage - easy rotation!
         
-        // Handle input - add to existing velocity instead of resetting
+        // Handle WASD movement with forces (Matter.js style)
+        const force = { x: 0, y: 0 };
+        
+        // Handle input - apply forces for smooth movement
         if (cursors.A.isDown) {
-            player.setVelocityX(player.velocity.x - 10);
-        } else if (cursors.D.isDown) {
-            player.setVelocityX(player.velocity.x + 10);
+            force.x -= this.moveSpeed;
+        }
+        if (cursors.D.isDown) {
+            force.x += this.moveSpeed;
+        }
+        if (cursors.W.isDown) {
+            force.y -= this.moveSpeed;
+        }
+        if (cursors.S.isDown) {
+            force.y += this.moveSpeed;
         }
         
-        if (cursors.W.isDown) {
-            player.setVelocityY(player.velocity.y - 10);
-        } else if (cursors.S.isDown) {
-            player.setVelocityY(player.velocity.y + 10);
+        // Apply force to the body
+        this.scene.matter.body.applyForce(this.body, this.body.position, force);
+        
+        // Add rotation control with Q and E keys
+        if (this.scene.input.keyboard.checkDown(this.scene.input.keyboard.addKey('Q'), 50)) {
+            // Spin counter-clockwise
+            this.scene.matter.body.setAngularVelocity(this.body, this.body.angularVelocity - 0.05);
+        }
+        if (this.scene.input.keyboard.checkDown(this.scene.input.keyboard.addKey('E'), 50)) {
+            // Spin clockwise
+            this.scene.matter.body.setAngularVelocity(this.body, this.body.angularVelocity + 0.05);
         }
         
         // Limit maximum speed
-        const maxSpeed = this.moveSpeed;
-        if (Math.abs(player.velocity.x) > maxSpeed) {
-            player.setVelocityX(Math.sign(player.velocity.x) * maxSpeed);
+        const maxSpeed = 10; // Adjusted for Matter.js velocity scale
+        const velocity = this.body.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        
+        if (speed > maxSpeed) {
+            const scale = maxSpeed / speed;
+            this.scene.matter.body.setVelocity(this.body, {
+                x: velocity.x * scale,
+                y: velocity.y * scale
+            });
         }
-        if (Math.abs(player.velocity.y) > maxSpeed) {
-            player.setVelocityY(Math.sign(player.velocity.y) * maxSpeed);
+        
+        // Limit angular velocity too
+        const maxAngularVelocity = 0.3;
+        if (Math.abs(this.body.angularVelocity) > maxAngularVelocity) {
+            this.scene.matter.body.setAngularVelocity(this.body, 
+                Math.sign(this.body.angularVelocity) * maxAngularVelocity);
         }
     }
     
     getDebugInfo() {
-        if (!this.sprite) return {};
+        if (!this.body) return {};
         
-        const player = this.sprite.body;
-        const velocity = Math.sqrt(player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y);
-        const distanceFromCenter = Phaser.Math.Distance.Between(this.scene.centerX, this.scene.centerY, this.sprite.x, this.sprite.y);
+        const velocity = this.body.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        const distanceFromCenter = Phaser.Math.Distance.Between(
+            this.scene.centerX, 
+            this.scene.centerY, 
+            this.body.position.x, 
+            this.body.position.y
+        );
         
         // Calculate time since last collision
         const timeSinceCollision = this.lastCollisionTime ? 
@@ -109,9 +156,11 @@ export default class Roller {
         
         return {
             type: 'Roller',
-            velocity: velocity.toFixed(1),
+            velocity: speed.toFixed(1),
             distanceFromCenter: distanceFromCenter.toFixed(1),
-            position: `(${this.sprite.x.toFixed(0)}, ${this.sprite.y.toFixed(0)})`,
+            position: `(${this.body.position.x.toFixed(0)}, ${this.body.position.y.toFixed(0)})`,
+            rotation: `${(this.body.angle * (180 / Math.PI)).toFixed(1)}°`, // Show rotation!
+            angularVelocity: `${this.body.angularVelocity.toFixed(3)} rad/s`, // Show spin rate!
             collisionCount: this.collisionCount || 0,
             timeSinceCollision: timeSinceCollision
         };
